@@ -24,7 +24,7 @@ import edu.wpi.first.wpilibj.XboxController;
 public final class Constants {
 
     public enum DriveID {
-        FRONT_RIGHT(16), FRONT_LEFT(10), BACK_LEFT(12), BACK_RIGHT(14);
+        FRONT_RIGHT(16), FRONT_LEFT(10), BACK_LEFT(12), BACK_RIGHT(15);
 
         private final int id;
 
@@ -38,7 +38,7 @@ public final class Constants {
     }
 
     public enum SpinID {
-        FRONT_RIGHT(17), FRONT_LEFT(11), BACK_LEFT(13), BACK_RIGHT(15);
+        FRONT_RIGHT(17), FRONT_LEFT(11), BACK_LEFT(13), BACK_RIGHT(14);
 
         private final int id;
 
@@ -56,6 +56,7 @@ public final class Constants {
     // The Driver Station joystick used for driving the robot.
     public static XboxController driverController = new XboxController(Constants.driveStickPort);
     public static Joystick driverJoystick = new Joystick(Constants.driveStickPort);
+    public static double rotationsPerSecondMultiplier = Math.PI;
 
     /* Gear ratio between the spin motor and wheel rotation */
     public static double gearRatio = 26.0 + 2.0 / 3.0;
@@ -66,28 +67,24 @@ public final class Constants {
     public static double anglePIDDefaultValue = 0.7;
 
     /* Robot Width and Length Constants */
-    public static double motorWidthApartInches = 24.5625;
-    public static double motorLengthApartInches = 20.875;
+    public static double motorLengthApartInches = 24.5625;
+    public static double motorWidthApartInches = 20.875;
 
     /* Offset calculations */
-    public static double motorXOffsetInches = motorWidthApartInches / 2;
-    public static double motorYOffsetInches = motorLengthApartInches / 2;
+    public static double motorXOffsetMeters = Units.inchesToMeters(motorWidthApartInches / 2);
+    public static double motorYOffsetMeters = Units.inchesToMeters(motorLengthApartInches / 2);
 
     /* Origin */
     public static final Translation2d origin = new Translation2d(0, 0);
 
     /* Motor offsets */
-    public static final Translation2d frontRightOffsetMeters = new Translation2d(
-            Units.inchesToMeters(motorXOffsetInches), /* X */
-            Units.inchesToMeters(motorYOffsetInches)); /* Y */
-    public static final Translation2d frontLeftOffsetMeters = new Translation2d(
-            -Units.inchesToMeters(motorXOffsetInches), /* X */
-            Units.inchesToMeters(motorYOffsetInches)); /* Y */
-    public static final Translation2d backLeftOffsetMeters = new Translation2d(
-            -Units.inchesToMeters(motorXOffsetInches), /* X */
-            -Units.inchesToMeters(motorYOffsetInches)); /* Y */
-    public static final Translation2d backRightOffsetMeters = new Translation2d(
-            Units.inchesToMeters(motorXOffsetInches), /* X */
-            -Units.inchesToMeters(motorYOffsetInches)); /* Y */
+    public static final Translation2d frontRightOffsetMeters = new Translation2d(motorXOffsetMeters,
+            motorYOffsetMeters);
+    public static final Translation2d frontLeftOffsetMeters = new Translation2d(-motorXOffsetMeters,
+            motorYOffsetMeters);
+    public static final Translation2d backLeftOffsetMeters = new Translation2d(-motorXOffsetMeters,
+            -motorYOffsetMeters);
+    public static final Translation2d backRightOffsetMeters = new Translation2d(motorXOffsetMeters,
+            -motorYOffsetMeters);
 
 }

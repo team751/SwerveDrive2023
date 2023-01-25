@@ -1,6 +1,8 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.revrobotics.CANSparkMax;
@@ -14,22 +16,26 @@ public class SwerveDriveSubsystem extends SubsystemBase {
   public final CANSparkMax spinMotor;
   public final RelativeEncoder encoder;
   public final PIDController pidController;
-  public double currentWheelAngleRadians;
+  public Rotation2d currentWheelRotation;
 
   /** Creates a new SwerveDriveSubsystem. */
   public SwerveDriveSubsystem(int driveID, int spinID) {
+    pidController = new PIDController(Constants.anglePIDDefaultValue, 0, 0);
+    pidController.enableContinuousInput(-Math.PI, Math.PI);
+    // pidController.enableContinuousInput(0, 2 * Math.PI);
     driveMotor = new CANSparkMax(driveID, MotorType.kBrushless);
     spinMotor = new CANSparkMax(spinID, MotorType.kBrushless);
     encoder = spinMotor.getEncoder();
-    pidController = new PIDController(Constants.anglePIDDefaultValue, 0, 0);
-    currentWheelAngleRadians = 0;
+    encoder.setPositionConversionFactor(2 * Math.PI / Constants.gearRatio);
+    encoder.setPosition(0);
+    currentWheelRotation = new Rotation2d(encoder.getPosition());
   }
 
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
     SmartDashboard.putNumber("Encoder Readout", encoder.getPosition());
-    currentWheelAngleRadians = ((encoder.getPosition() / Constants.gearRatio) % 1) * (2 * Math.PI);
+    currentWheelRotation = new Rotation2d(encoder.getPosition());
   }
 
   @Override
@@ -46,17 +52,29 @@ public class SwerveDriveSubsystem extends SubsystemBase {
     spinMotor.set(speed);
   }
 
+  public Rotation2d getCurrentRotation2d() {
+    return currentWheelRotation;
+  }
+
+  public double getCurrentAngleRadians() {
+    return currentWheelRotation.getRadians();
+  }
+
   public double setAngle(double angleRadians) {
-    double amountToSpinWheel = (angleRadians - currentWheelAngleRadians > Math.PI)
-        ? angleRadians - currentWheelAngleRadians - Math.PI
-        : (angleRadians - currentWheelAngleRadians < -Math.PI)
-            ? angleRadians - currentWheelAngleRadians + Math.PI
-            : angleRadians - currentWheelAngleRadians;
-    double amountToSpinMotor = amountToSpinWheel * Constants.gearRatio;
-    double motorSpeed = pidController.calculate(currentWheelAngleRadians, amountToSpinMotor);
-    double normalizedMotorSpinSpeed = (motorSpeed / Constants.spinMotorMaxSpeedMetersPerSecond);
+    double motorSpeed = pidController.calculate(getCurrentAngleRadians(), angleRadians);
+    double normalizedMotorSpinSpeed = (motorSpeed / Constants.spinMotorMaxSpeedMetersPerSecond) * Constants.gearRatio;
     spinMotor.set(normalizedMotorSpinSpeed);
     return normalizedMotorSpinSpeed;
+  }
+
+  public void drive(SwerveModuleState state) {
+    state = SwerveModuleState.optimize(state, getCurrentRotation2d());
+    // setting the angle
+    double angleSetpoint = state.angle.getRadians();
+    setAngle(angleSetpoint);
+
+    double motorSpeed = state.speedMetersPerSecond / Constants.motorMaxSpeedMetersPerSecond;
+    driveMotor.set(motorSpeed);
   }
 
   public void stop() {
