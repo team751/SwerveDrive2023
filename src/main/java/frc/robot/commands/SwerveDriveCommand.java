@@ -31,20 +31,21 @@ public class SwerveDriveCommand extends CommandBase {
     @Override
     public void execute() {
         // Get joystick values
-        double speed = Constants.driverJoystick.getMagnitude(); // TODO: Convert to m/s
-        double angle = Constants.driverJoystick.getDirectionRadians(); // TODO: Figure out fwd angle of joystick
-        double rotation = Constants.driverController.getRightX();
+        double vx = -Constants.driverController.getLeftX(); // TODO: Convert to m/s
+        double vy = Constants.driverController.getLeftY(); // TODO: Convert to m/s
+        double rotationsPerSecond = Constants.driverController.getRightX() * Constants.rotationsPerSecondMultiplier;
 
         // Speed deadband
-        if (Math.abs(speed) < 0.2) {
-            speed = 0;
+        if (Math.sqrt(vx * vx + vy * vy) < 0.2) {
+            vx = 0;
+            vy = 0;
         }
-        swerveSubsystem.drive(speed, angle, rotation);
 
+        swerveSubsystem.drive(vx, vy, rotationsPerSecond);
         // Smart dashboard controller readouts
-        SmartDashboard.putNumber("Left Stick Angle (Radians)", angle);
-        SmartDashboard.putNumber("Left Stick Magnitude", speed);
-        SmartDashboard.putNumber("Right Stick Rotation", rotation);
+        SmartDashboard.putNumber("Left Stick Angle (Radians)", Math.atan2(vx, vy));
+        SmartDashboard.putNumber("Left Stick Magnitude", Math.sqrt(vx * vx + vy * vy));
+        SmartDashboard.putNumber("Right Stick Rotation", rotationsPerSecond);
     }
 
     // Called once the command ends or is interrupted.

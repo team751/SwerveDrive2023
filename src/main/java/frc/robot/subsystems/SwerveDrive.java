@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -24,8 +25,8 @@ public class SwerveDrive extends SubsystemBase {
         this.backLeft = backLeft;
         this.backRight = backRight;
 
-        kinematics = new SwerveDriveKinematics(Constants.frontRightOffsetMeters, Constants.frontLeftOffsetMeters,
-                Constants.backRightOffsetMeters, Constants.backLeftOffsetMeters);
+        kinematics = new SwerveDriveKinematics(Constants.frontLeftOffsetMeters, Constants.frontRightOffsetMeters,
+                Constants.backLeftOffsetMeters, Constants.backRightOffsetMeters);
 
         SmartDashboard.putBoolean("Front Right Motor", false);
         SmartDashboard.putBoolean("Front Left Motor", false);
@@ -34,50 +35,48 @@ public class SwerveDrive extends SubsystemBase {
         SmartDashboard.putBoolean("Enable All Motors", true);
     }
 
-    public void drive(double speedMetersPerSecond, double directionRadians, double rotationRadiansPerSecond) {
+    public void drive(double vx, double vy, double rotationRadiansPerSecond) {
         // Joystick values to a speed vector
-        double vx = speedMetersPerSecond * Math.cos(directionRadians);
-        double vy = speedMetersPerSecond * Math.sin(directionRadians);
-
         // Convert speed vector and rotation to module speeds
         ChassisSpeeds speeds = new ChassisSpeeds(vx, vy, rotationRadiansPerSecond);
         // Unpack module speeds
         SwerveModuleState[] states = kinematics.toSwerveModuleStates(speeds);
-        SwerveModuleState frontRightState = states[0];
-        SwerveModuleState frontLeftState = states[1];
-        SwerveModuleState backRightState = states[2];
-        SwerveModuleState backLeftState = states[3];
+        SwerveModuleState frontLeftState = states[0];
+        SwerveModuleState frontRightState = states[1];
+        SwerveModuleState backLeftState = states[2];
+        SwerveModuleState backRightState = states[3];
+
+        // stops modules from resetting their position if the joystick is not being used
+        if (Math.sqrt(vx * vx + vy * vy) < 0.1 && Math.abs(rotationRadiansPerSecond) < 0.1) {
+            stop();
+            return;
+        }
 
         // Override to enable all motors at once on SmartDashboard, on by default
         boolean enableAllMotors = SmartDashboard.getBoolean("Enable All Motors", true);
         /* Set swerve module speeds and rotations, also put them to smartdashboard */
         if (SmartDashboard.getBoolean("Front Right Motor", false) || enableAllMotors) {
-            frontRight.setSpeed(frontRightState.speedMetersPerSecond);
-            double spinSpeed = frontRight.setAngle(frontRightState.angle.getRadians());
-            SmartDashboard.putNumber("Front Right Spin Speed", spinSpeed);
+            // Actual Driving
+            frontRight.drive(frontRightState);
+            // Debug Printouts
             SmartDashboard.putNumber("Front Right Angle (Degrees)",
-                    Units.radiansToDegrees(frontRight.currentWheelAngleRadians));
+                    Units.radiansToDegrees(frontRight.getCurrentAngleRadians()));
         }
         if (SmartDashboard.getBoolean("Front Left Motor", false) || enableAllMotors) {
-            frontLeft.setSpeed(frontLeftState.speedMetersPerSecond);
-            double spinSpeed = frontLeft.setAngle(frontLeftState.angle.getRadians());
-            SmartDashboard.putNumber("Front Left Spin Speed", spinSpeed);
+            frontLeft.drive(frontLeftState);
+            SmartDashboard.putNumber("Front Left Target", frontLeftState.angle.getDegrees());
             SmartDashboard.putNumber("Front Left Angle (Degrees)",
-                    Units.radiansToDegrees(frontLeft.currentWheelAngleRadians));
+                    Units.radiansToDegrees(frontLeft.getCurrentAngleRadians()));
         }
         if (SmartDashboard.getBoolean("Back Right Motor", false) || enableAllMotors) {
-            backRight.setSpeed(backRightState.speedMetersPerSecond);
-            double spinSpeed = backRight.setAngle(backRightState.angle.getRadians());
-            SmartDashboard.putNumber("Back Right Spin Speed", spinSpeed);
+            backRight.drive(backRightState);
             SmartDashboard.putNumber("Back Right Angle (Degrees)",
-                    Units.radiansToDegrees(backRight.currentWheelAngleRadians));
+                    Units.radiansToDegrees(backRight.getCurrentAngleRadians()));
         }
         if (SmartDashboard.getBoolean("Back Left Motor", false) || enableAllMotors) {
-            backLeft.setSpeed(backLeftState.speedMetersPerSecond);
-            double spinSpeed = backLeft.setAngle(backLeftState.angle.getRadians());
-            SmartDashboard.putNumber("Back Left Spin Speed", spinSpeed);
+            backLeft.drive(backLeftState);
             SmartDashboard.putNumber("Back Left Angle (Degrees)",
-                    Units.radiansToDegrees(backLeft.currentWheelAngleRadians));
+                    Units.radiansToDegrees(backLeft.getCurrentAngleRadians()));
         }
 
     }
