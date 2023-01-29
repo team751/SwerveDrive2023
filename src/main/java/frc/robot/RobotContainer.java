@@ -7,7 +7,6 @@ package frc.robot;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
 import frc.robot.subsystems.*;
 import frc.robot.commands.*;
 
@@ -21,19 +20,11 @@ import frc.robot.commands.*;
  * subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
-  // The robot's subsystems and commands are defined here...
-  private final SwerveDriveSubsystem frontLeftModule = new SwerveDriveSubsystem(
-      Constants.DriveID.FRONT_LEFT.getID(), // Drive Motor CAN ID
-      Constants.SpinID.FRONT_LEFT.getID()); // Spin Motor CAN ID
-  private final SwerveDriveSubsystem backLeftModule = new SwerveDriveSubsystem(
-      Constants.DriveID.BACK_LEFT.getID(),
-      Constants.SpinID.BACK_LEFT.getID());
-  private final SwerveDriveSubsystem backRightModule = new SwerveDriveSubsystem(
-      Constants.DriveID.BACK_RIGHT.getID(),
-      Constants.SpinID.BACK_RIGHT.getID());
-  private final SwerveDriveSubsystem frontRightModule = new SwerveDriveSubsystem(
-      Constants.DriveID.FRONT_RIGHT.getID(),
-      Constants.SpinID.FRONT_RIGHT.getID());
+  // The robot's subsystems and commands are defined here
+  private final SwerveModule frontLeftModule = new SwerveModule(Constants.SwerveModule.FRONT_LEFT);
+  private final SwerveModule backLeftModule = new SwerveModule(Constants.SwerveModule.BACK_LEFT);
+  private final SwerveModule backRightModule = new SwerveModule(Constants.SwerveModule.BACK_RIGHT);
+  private final SwerveModule frontRightModule = new SwerveModule(Constants.SwerveModule.FRONT_RIGHT);
 
   private final SwerveDrive swerve = new SwerveDrive(
       frontLeftModule, frontRightModule, backLeftModule, backRightModule);

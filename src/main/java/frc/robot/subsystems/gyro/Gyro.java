@@ -1,4 +1,4 @@
-package frc.robot.subsystems;
+package frc.robot.subsystems.gyro;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 import edu.wpi.first.wpilibj.I2C;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+// Wrapper for the LSM9DS1 gyroscope, gets values from the registers via I2C
 public class Gyro {
     private final int LSM9DS1_ADDRESS = 0x6b;
 
@@ -123,5 +124,12 @@ public class Gyro {
         gyroErrorX = 0 - data[0];
         gyroErrorY = 0 - data[1];
         gyroErrorZ = 0 - data[2];
+    }
+
+    public void debugDisplayValues() {
+        getAcceleration();
+        getRotationalVelocity();
+        getMagnetometerReadings();
+        getAccelerationAngle();
     }
 }

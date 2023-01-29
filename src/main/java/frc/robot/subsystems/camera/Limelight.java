@@ -3,6 +3,7 @@ package frc.robot.subsystems.camera;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Limelight {
     private final NetworkTable table;
@@ -14,7 +15,7 @@ public class Limelight {
     private final NetworkTableEntry skew;
     private final NetworkTableEntry cameraMode;
 
-    public Limelight() {
+    public Limelight() { // TODO: limelight not reading from networkTables (photon vision?)
         table = NetworkTableInstance.getDefault().getTable("limelight");
         target = table.getEntry("tv");
         x = table.getEntry("tx");
@@ -22,5 +23,11 @@ public class Limelight {
         area = table.getEntry("ta");
         skew = table.getEntry("ts");
         cameraMode = table.getEntry("camMode");
+    }
+
+    public void debugDisplayValues() {
+        SmartDashboard.putNumber("tx", x.getDouble(0));
+        SmartDashboard.putNumber("ty", y.getDouble(0));
+        SmartDashboard.putNumber("area", area.getDouble(0.0));
     }
 }

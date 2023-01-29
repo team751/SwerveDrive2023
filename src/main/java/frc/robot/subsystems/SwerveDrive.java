@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -10,29 +9,31 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
 public class SwerveDrive extends SubsystemBase {
-    private SwerveDriveSubsystem frontLeft;
-    private SwerveDriveSubsystem frontRight;
-    private SwerveDriveSubsystem backLeft;
-    private SwerveDriveSubsystem backRight;
+    private SwerveModule frontLeft;
+    private SwerveModule frontRight;
+    private SwerveModule backLeft;
+    private SwerveModule backRight;
 
     private SwerveDriveKinematics kinematics;
 
     /** Creates a new ExampleSubsystem. */
-    public SwerveDrive(SwerveDriveSubsystem frontLeft, SwerveDriveSubsystem frontRight, SwerveDriveSubsystem backLeft,
-            SwerveDriveSubsystem backRight) {
+    public SwerveDrive(SwerveModule frontLeft, SwerveModule frontRight, SwerveModule backLeft,
+            SwerveModule backRight) {
         this.frontLeft = frontLeft;
         this.frontRight = frontRight;
         this.backLeft = backLeft;
         this.backRight = backRight;
 
-        kinematics = new SwerveDriveKinematics(Constants.frontLeftOffsetMeters, Constants.frontRightOffsetMeters,
-                Constants.backLeftOffsetMeters, Constants.backRightOffsetMeters);
-
-        SmartDashboard.putBoolean("Front Right Motor", false);
-        SmartDashboard.putBoolean("Front Left Motor", false);
-        SmartDashboard.putBoolean("Back Right Motor", false);
-        SmartDashboard.putBoolean("Back Left Motor", false);
-        SmartDashboard.putBoolean("Enable All Motors", true);
+        kinematics = new SwerveDriveKinematics(
+                Constants.frontLeftOffsetMeters,
+                Constants.frontRightOffsetMeters,
+                Constants.backLeftOffsetMeters,
+                Constants.backRightOffsetMeters);
+        SmartDashboard.putBoolean("Front Right Motor", true);
+        SmartDashboard.putBoolean("Front Left Motor", true);
+        SmartDashboard.putBoolean("Back Right Motor", true);
+        SmartDashboard.putBoolean("Back Left Motor", true);
+        SmartDashboard.putBoolean("Disable All Motors", false);
     }
 
     public void drive(double vx, double vy, double rotationRadiansPerSecond) {
@@ -53,33 +54,33 @@ public class SwerveDrive extends SubsystemBase {
         }
 
         // Override to enable all motors at once on SmartDashboard, on by default
-        boolean enableAllMotors = SmartDashboard.getBoolean("Enable All Motors", true);
+        boolean disableAllMotors = SmartDashboard.getBoolean("Disable All Motors", false);
         /* Set swerve module speeds and rotations, also put them to smartdashboard */
-        if (SmartDashboard.getBoolean("Front Right Motor", false) || enableAllMotors) {
+        if (SmartDashboard.getBoolean("Front Right Motor", true) && !disableAllMotors) {
             // Actual Driving
             frontRight.drive(frontRightState);
-            // Debug Printouts
-            SmartDashboard.putNumber("Front Right Angle (Degrees)",
-                    Units.radiansToDegrees(frontRight.getCurrentAngleRadians()));
         }
-        if (SmartDashboard.getBoolean("Front Left Motor", false) || enableAllMotors) {
+        if (SmartDashboard.getBoolean("Front Left Motor", true) && !disableAllMotors) {
             double encoderVelocity = frontLeft.drive(frontLeftState);
             SmartDashboard.putNumber("Front Left Target", frontLeftState.angle.getDegrees());
             SmartDashboard.putNumber("Front Left Encoder Velocity", encoderVelocity);
             SmartDashboard.putNumber("Front Left Angle (Degrees)",
                     Units.radiansToDegrees(frontLeft.getCurrentAngleRadians()));
         }
-        if (SmartDashboard.getBoolean("Back Right Motor", false) || enableAllMotors) {
+        if (SmartDashboard.getBoolean("Back Right Motor", true) && !disableAllMotors) {
             backRight.drive(backRightState);
-            SmartDashboard.putNumber("Back Right Angle (Degrees)",
-                    Units.radiansToDegrees(backRight.getCurrentAngleRadians()));
         }
-        if (SmartDashboard.getBoolean("Back Left Motor", false) || enableAllMotors) {
+        if (SmartDashboard.getBoolean("Back Left Motor", true) && !disableAllMotors) {
             backLeft.drive(backLeftState);
-            SmartDashboard.putNumber("Back Left Angle (Degrees)",
-                    Units.radiansToDegrees(backLeft.getCurrentAngleRadians()));
         }
 
+    }
+
+    public void zeroModules() {
+        frontLeft.resetSpinMotor();
+        backLeft.resetSpinMotor();
+        backRight.resetSpinMotor();
+        backLeft.resetSpinMotor();
     }
 
     @Override

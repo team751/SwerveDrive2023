@@ -1,19 +1,21 @@
 package frc.robot.commands;
 
 import frc.robot.subsystems.SwerveDrive;
+import frc.robot.subsystems.absencoder.AbsoluteEncoder;
+import frc.robot.subsystems.camera.Limelight;
 import frc.robot.Constants;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandBase;
 import edu.wpi.first.math.filter.SlewRateLimiter;
-import frc.robot.subsystems.Gyro;
-import frc.robot.subsystems.complementaryFilter;
+import frc.robot.subsystems.gyro.Gyro;
+import frc.robot.subsystems.gyro.ComplementaryFilter;
 
 public class SwerveDriveCommand extends CommandBase {
     private final SwerveDrive swerveSubsystem;
     private final SlewRateLimiter vxFLimiter;
     private final SlewRateLimiter vyFLimiter;
-    private final Gyro bob;
-    private complementaryFilter Gyrofilter;
+    private final ComplementaryFilter gyroFilter;
+    private final Limelight limelight;
 
     /**
      * Creates a new SwerveDriveCommand.
@@ -23,8 +25,11 @@ public class SwerveDriveCommand extends CommandBase {
     public SwerveDriveCommand(SwerveDrive subsystem) {
         swerveSubsystem = subsystem;
         addRequirements(subsystem);
-        bob = new Gyro();
-        Gyrofilter = new complementaryFilter();
+        // Gyroscope
+        gyroFilter = new ComplementaryFilter();
+        // Camera
+        limelight = new Limelight();
+
         SmartDashboard.putNumber("Left Stick Angle (Radians)", 0);
         SmartDashboard.putNumber("Left Stick Magnitude", 0);
         SmartDashboard.putNumber("Right Stick Rotation", 0);
@@ -42,13 +47,13 @@ public class SwerveDriveCommand extends CommandBase {
     // Called every time the scheduler runs while the command is scheduled.
     @Override
     public void execute() {
-        // Get joystick values
-        bob.getRotationalVelocity();
-        bob.getAcceleration();
-        bob.getMagnetometerReadings();
-        bob.getAccelerationAngle();
-        Gyrofilter.getAngle();
+        // Get Gyro Readings
+        gyroFilter.debugAngle();
 
+        // Get camera values
+        limelight.debugDisplayValues();
+
+        // Get Joystick Values
         double vx = vxFLimiter.calculate(Constants.driverController.getLeftX()); // TODO: Convert to m/s
         double vy = vyFLimiter.calculate(Constants.driverController.getLeftY()); // TODO: Convert to m/s
         double rotationsPerSecond = Constants.driverController.getRightX() * Constants.rotationsPerSecondMultiplier;
@@ -59,7 +64,13 @@ public class SwerveDriveCommand extends CommandBase {
             vy = 0;
         }
 
-        swerveSubsystem.drive(vx, vy, rotationsPerSecond);
+        // TODO: weird behavior where this only works when "A" is held down
+        // TODO: perhaps have the function return true if completed?
+        if (Constants.driverController.getAButton()) {
+            swerveSubsystem.zeroModules();
+        } else {
+            swerveSubsystem.drive(vx, vy, rotationsPerSecond);
+        }
         // Smart dashboard controller readouts
         SmartDashboard.putNumber("Left Stick Angle (Radians)", Math.atan2(vx, vy));
         SmartDashboard.putNumber("Left Stick Magnitude", Math.sqrt(vx * vx + vy * vy));

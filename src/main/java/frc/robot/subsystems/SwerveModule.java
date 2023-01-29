@@ -3,25 +3,29 @@ package frc.robot.subsystems;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import frc.robot.Constants;
+import frc.robot.subsystems.absencoder.AbsoluteEncoder;;
 
-public class SwerveDriveSubsystem extends SubsystemBase {
+public class SwerveModule extends SubsystemBase {
 
-  public final CANSparkMax driveMotor;
-  public final CANSparkMax spinMotor;
-  public final RelativeEncoder encoder;
-  public final PIDController rotationalPidController;
-  public final PIDController drivePidController;
-  public Rotation2d currentWheelRotation;
+  private final CANSparkMax driveMotor;
+  private final CANSparkMax spinMotor;
+  private final RelativeEncoder encoder;
+  private final PIDController rotationalPidController;
+  private final PIDController drivePidController;
+  private Rotation2d currentWheelRotation;
+  private final AbsoluteEncoder absoluteEncoder;
 
   /** Creates a new SwerveDriveSubsystem. */
-  public SwerveDriveSubsystem(int driveID, int spinID) {
+  public SwerveModule(int driveID, int spinID, int encoderID) {
     rotationalPidController = new PIDController(Constants.anglePIDDefaultValue, 0, 0);
+    absoluteEncoder = new AbsoluteEncoder(encoderID);
     rotationalPidController.enableContinuousInput(-Math.PI, Math.PI);
 
     drivePidController = new PIDController(0.5, 0, 0.01);
@@ -34,10 +38,14 @@ public class SwerveDriveSubsystem extends SubsystemBase {
     currentWheelRotation = new Rotation2d(encoder.getPosition());
   }
 
+  public SwerveModule(Constants.SwerveModule moduleConfig) {
+    this(moduleConfig.getDriveID(), moduleConfig.getSpinID(), moduleConfig.getEncoderID());
+    this.setName(moduleConfig.name());
+  }
+
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
-    SmartDashboard.putNumber("Encoder Readout", encoder.getPosition());
     currentWheelRotation = new Rotation2d(encoder.getPosition());
   }
 
@@ -80,6 +88,19 @@ public class SwerveDriveSubsystem extends SubsystemBase {
     double motorSpeedA = drivePidController.calculate(driveMotor.getEncoder().getVelocity() / 6000, motorSpeed);
     driveMotor.set(motorSpeed);
     return driveMotor.getEncoder().getVelocity();
+  }
+
+  public void resetSpinMotor() {
+    double motorSpeed = rotationalPidController.calculate(absoluteEncoder.getPositionRadians(), 5.06);
+    double normalizedMotorSpinSpeed = (motorSpeed / Constants.spinMotorMaxSpeedMetersPerSecond) * Constants.gearRatio;
+    spinMotor.set(normalizedMotorSpinSpeed);
+  }
+
+  public void debugPrintValues() {
+    SmartDashboard.putNumber(this.getName() + " Absolute Encoder Angle", absoluteEncoder.getPositionRadians() * 360);
+    SmartDashboard.putNumber(this.getName() + " Relative Encoder Angle", encoder.getPosition() * 360);
+    SmartDashboard.putNumber(this.getName() + " Angle (Degrees)", Units.radiansToDegrees(getCurrentAngleRadians()));
+    SmartDashboard.putNumber("Front Left Encoder Velocity", driveMotor.getEncoder().getVelocity());
   }
 
   public void stop() {

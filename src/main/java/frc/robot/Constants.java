@@ -23,31 +23,33 @@ import edu.wpi.first.wpilibj.XboxController;
  */
 public final class Constants {
 
-    public enum DriveID {
-        FRONT_RIGHT(16), FRONT_LEFT(10), BACK_LEFT(12), BACK_RIGHT(15);
+    // Used for initializing swerve modules at startup
+    public enum SwerveModule {
+        FRONT_RIGHT(16, 17, 2),
+        FRONT_LEFT(10, 11, 1),
+        BACK_LEFT(12, 13, 0),
+        BACK_RIGHT(15, 14, 3);
 
-        private final int id;
+        private final int driveID;
+        private final int spinID;
+        private final int encoderID;
 
-        DriveID(int id) {
-            this.id = id;
+        SwerveModule(int driveID, int spinID, int encoderID) {
+            this.driveID = driveID;
+            this.spinID = spinID;
+            this.encoderID = encoderID;
         }
 
-        public int getID() {
-            return id;
-        }
-    }
-
-    public enum SpinID {
-        FRONT_RIGHT(17), FRONT_LEFT(11), BACK_LEFT(13), BACK_RIGHT(14);
-
-        private final int id;
-
-        SpinID(int id) {
-            this.id = id;
+        public int getDriveID() {
+            return driveID;
         }
 
-        public int getID() {
-            return id;
+        public int getSpinID() {
+            return spinID;
+        }
+
+        public int getEncoderID() {
+            return encoderID;
         }
     }
 
