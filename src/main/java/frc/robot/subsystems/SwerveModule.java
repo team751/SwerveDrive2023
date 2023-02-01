@@ -14,32 +14,35 @@ import frc.robot.subsystems.absencoder.AbsoluteEncoder;;
 
 public class SwerveModule extends SubsystemBase {
 
+  // Motors
   private final CANSparkMax driveMotor;
   private final CANSparkMax spinMotor;
+  // Motor encoders
   private final RelativeEncoder encoder;
-  private final PIDController rotationalPidController;
-  private final PIDController drivePidController;
-  private Rotation2d currentWheelRotation;
   private final AbsoluteEncoder absoluteEncoder;
+  // Setpoint for absolute encoder
+  private final double ENCODER_OFFSET;
+  // PID controllers for rotation
+  private final PIDController rotationalPidController;
+
+  // Instance variables for returning values
+  private Rotation2d currentWheelRotation;
 
   /** Creates a new SwerveDriveSubsystem. */
-  public SwerveModule(int driveID, int spinID, int encoderID) {
+  public SwerveModule(int driveID, int spinID, int encoderID, double absoluteEncoderOffset) {
     rotationalPidController = new PIDController(Constants.anglePIDDefaultValue, 0, 0);
     absoluteEncoder = new AbsoluteEncoder(encoderID);
     rotationalPidController.enableContinuousInput(-Math.PI, Math.PI);
-
-    drivePidController = new PIDController(0.5, 0, 0.01);
-    // pidController.enableContinuousInput(0, 2 * Math.PI);
+    ENCODER_OFFSET = absoluteEncoderOffset;
     driveMotor = new CANSparkMax(driveID, MotorType.kBrushless);
     spinMotor = new CANSparkMax(spinID, MotorType.kBrushless);
     encoder = spinMotor.getEncoder();
-    encoder.setPositionConversionFactor(2 * Math.PI / Constants.gearRatio);
-    encoder.setPosition(0);
     currentWheelRotation = new Rotation2d(encoder.getPosition());
   }
 
   public SwerveModule(Constants.SwerveModule moduleConfig) {
-    this(moduleConfig.getDriveID(), moduleConfig.getSpinID(), moduleConfig.getEncoderID());
+    this(moduleConfig.getDriveID(), moduleConfig.getSpinID(), moduleConfig.getEncoderID(),
+        moduleConfig.getEncoderOffset());
     this.setName(moduleConfig.name());
   }
 
@@ -85,15 +88,19 @@ public class SwerveModule extends SubsystemBase {
     setAngle(angleSetpoint);
 
     double motorSpeed = state.speedMetersPerSecond / Constants.motorMaxSpeedMetersPerSecond;
-    double motorSpeedA = drivePidController.calculate(driveMotor.getEncoder().getVelocity() / 6000, motorSpeed);
     driveMotor.set(motorSpeed);
     return driveMotor.getEncoder().getVelocity();
   }
 
-  public void resetSpinMotor() {
-    double motorSpeed = rotationalPidController.calculate(absoluteEncoder.getPositionRadians(), 5.06);
+  public boolean resetSpinMotor() {
+    double motorSpeed = rotationalPidController.calculate(absoluteEncoder.getPositionRadians(), ENCODER_OFFSET);
     double normalizedMotorSpinSpeed = (motorSpeed / Constants.spinMotorMaxSpeedMetersPerSecond) * Constants.gearRatio;
     spinMotor.set(normalizedMotorSpinSpeed);
+    if (Math.abs(absoluteEncoder.getPositionRadians() - ENCODER_OFFSET) < 0.01) {
+      encoder.setPosition(0);
+      return true;
+    }
+    return false;
   }
 
   public void debugPrintValues() {

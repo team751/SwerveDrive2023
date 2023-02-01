@@ -31,6 +31,7 @@
     "deadband",
     "Setpoint",
     "smartdashboard",
+    "Swerb",
     "teleop"
   ]
 }

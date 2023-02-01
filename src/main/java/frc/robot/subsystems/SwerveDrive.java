@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 
+// Subsystem controlling all four individual swerve modules
 public class SwerveDrive extends SubsystemBase {
     private SwerveModule frontLeft;
     private SwerveModule frontRight;
@@ -76,11 +77,12 @@ public class SwerveDrive extends SubsystemBase {
 
     }
 
-    public void zeroModules() {
-        frontLeft.resetSpinMotor();
-        backLeft.resetSpinMotor();
-        backRight.resetSpinMotor();
-        backLeft.resetSpinMotor();
+    public boolean zeroModules() {
+        boolean fl = frontLeft.resetSpinMotor();
+        boolean fr = backLeft.resetSpinMotor();
+        boolean br = backRight.resetSpinMotor();
+        boolean bl = backLeft.resetSpinMotor();
+        return fl && fr && br && bl;
     }
 
     @Override

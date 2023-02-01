@@ -25,19 +25,21 @@ public final class Constants {
 
     // Used for initializing swerve modules at startup
     public enum SwerveModule {
-        FRONT_RIGHT(16, 17, 2),
-        FRONT_LEFT(10, 11, 1),
-        BACK_LEFT(12, 13, 0),
-        BACK_RIGHT(15, 14, 3);
+        FRONT_RIGHT(16, 17, 2, 0),
+        FRONT_LEFT(10, 11, 1, 0),
+        BACK_LEFT(12, 13, 0, 5.06),
+        BACK_RIGHT(15, 14, 3, 0);
 
         private final int driveID;
         private final int spinID;
         private final int encoderID;
+        private final double encoderOffset;
 
-        SwerveModule(int driveID, int spinID, int encoderID) {
+        SwerveModule(int driveID, int spinID, int encoderID, double encoderOffset) {
             this.driveID = driveID;
             this.spinID = spinID;
             this.encoderID = encoderID;
+            this.encoderOffset = encoderOffset;
         }
 
         public int getDriveID() {
@@ -50,6 +52,10 @@ public final class Constants {
 
         public int getEncoderID() {
             return encoderID;
+        }
+
+        public double getEncoderOffset() {
+            return encoderOffset;
         }
     }
 

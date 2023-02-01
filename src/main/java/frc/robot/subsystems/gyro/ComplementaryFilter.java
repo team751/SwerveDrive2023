@@ -30,6 +30,9 @@ public class ComplementaryFilter {
         anglePrevious[0] = angle[0];
         anglePrevious[1] = angle[1];
         anglePrevious[2] = angle[2];
+        angle[0] = Math.toRadians(angle[0]);
+        angle[1] = Math.toRadians(angle[1]);
+        angle[2] = Math.toRadians(angle[2]);
         return angle;
     }
 
