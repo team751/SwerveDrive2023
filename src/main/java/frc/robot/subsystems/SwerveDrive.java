@@ -56,17 +56,12 @@ public class SwerveDrive extends SubsystemBase {
 
         // Override to enable all motors at once on SmartDashboard, on by default
         boolean disableAllMotors = SmartDashboard.getBoolean("Disable All Motors", false);
-        /* Set swerve module speeds and rotations, also put them to smartdashboard */
+        /* Set swerve module speeds and rotations */s
         if (SmartDashboard.getBoolean("Front Right Motor", true) && !disableAllMotors) {
-            // Actual Driving
             frontRight.drive(frontRightState);
         }
         if (SmartDashboard.getBoolean("Front Left Motor", true) && !disableAllMotors) {
-            double encoderVelocity = frontLeft.drive(frontLeftState);
-            SmartDashboard.putNumber("Front Left Target", frontLeftState.angle.getDegrees());
-            SmartDashboard.putNumber("Front Left Encoder Velocity", encoderVelocity);
-            SmartDashboard.putNumber("Front Left Angle (Degrees)",
-                    Units.radiansToDegrees(frontLeft.getCurrentAngleRadians()));
+            frontLeft.drive(frontLeftState);
         }
         if (SmartDashboard.getBoolean("Back Right Motor", true) && !disableAllMotors) {
             backRight.drive(backRightState);
@@ -74,7 +69,6 @@ public class SwerveDrive extends SubsystemBase {
         if (SmartDashboard.getBoolean("Back Left Motor", true) && !disableAllMotors) {
             backLeft.drive(backLeftState);
         }
-
     }
 
     public boolean zeroModules() {

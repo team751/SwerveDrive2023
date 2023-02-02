@@ -36,7 +36,7 @@ public class ComplementaryFilter {
         return angle;
     }
 
-    public void debugAngle() {
+    public void debugPrintValues() {
         double[] angle = getAngle();
         SmartDashboard.putNumber("filteredX", angle[0]);
         SmartDashboard.putNumber("FilteredY", angle[1]);

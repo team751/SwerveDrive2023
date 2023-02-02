@@ -41,17 +41,20 @@ public class SwerveDriveCommand extends CommandBase {
      * @param subsystem The subsystem used by this command.
      */
     public SwerveDriveCommand(SwerveDrive subsystem) {
+        
+        
+        swerveSubsystem = subsystem;
+        addRequirements(subsystem);
+        height = 0;
+        // Gyroscope & Auto Level Globals
+        gyroFilter = new ComplementaryFilter();
         rawGyro = new Gyro();
+        autoLevel = false;
+        zeroModules = false;
         netDistance = 0;
         netSpeed = 0;
         olderTime = 0;
         deltaTime = 0;
-        swerveSubsystem = subsystem;
-        addRequirements(subsystem);
-        height = 0;
-        // Gyroscope
-        gyroFilter = new ComplementaryFilter();
-        autoLevel = false;
         // Camera
         limelight = new Limelight();
 
@@ -59,6 +62,7 @@ public class SwerveDriveCommand extends CommandBase {
         SmartDashboard.putNumber("Left Stick Magnitude", 0);
         SmartDashboard.putNumber("Right Stick Rotation", 0);
 
+        // Joystick Limiters (units per second)
         vxFLimiter = new SlewRateLimiter(2);
         vyFLimiter = new SlewRateLimiter(2);
         levelPIDController = new PIDController(0.5, 0, 0);
@@ -74,12 +78,12 @@ public class SwerveDriveCommand extends CommandBase {
     @Override
     public void execute() {
         // Get Gyro Readings
-        gyroFilter.debugAngle();
+        gyroFilter.debugPrintValues();
 
         // Get camera values
         limelight.debugDisplayValues();
 
-        // Get Joystick Values
+        // Get filtered joystick values
         double vx = vxFLimiter.calculate(Constants.driverController.getLeftX()); // TODO: Convert to m/s
         double vy = vyFLimiter.calculate(Constants.driverController.getLeftY()); // TODO: Convert to m/s
         double rotationsPerSecond = Constants.driverController.getRightX() * Constants.rotationsPerSecondMultiplier;
@@ -89,9 +93,12 @@ public class SwerveDriveCommand extends CommandBase {
             vx = 0;
             vy = 0;
         }
+        //Rotation deadband
+        if(Math.abs(rotationsPerSecond) < 0.2) {
+            rotationsPerSecond = 0;
+        }
 
-        // TODO: weird behavior where this only works when "A" is held down
-        // TODO: perhaps have the function return true if completed?
+        // Auto Level Mode (press B to toggle)
         if (Constants.driverController.getBButtonPressed()) {
             autoLevel = !autoLevel;
             olderTime = 0;
@@ -100,6 +107,7 @@ public class SwerveDriveCommand extends CommandBase {
             SmartDashboard.putString("Current Mode", "Auto Level");
         }
 
+        // Zero Modules Mode (press A to toggle)
         if (Constants.driverController.getAButtonPressed()) {
             zeroModules = !zeroModules;
             SmartDashboard.putString("Current Mode", "Zeroing Modules");
@@ -119,31 +127,33 @@ public class SwerveDriveCommand extends CommandBase {
         SmartDashboard.putNumber("Right Stick Rotation", rotationsPerSecond);
     }
 
-    // Called once the command ends or is interrupted.
-    @Override
-    public void end(boolean interrupted) {
-        swerveSubsystem.stop();
-    }
+   
 
     public void autoLevel() {
         if (olderTime == 0) {
             olderTime = System.currentTimeMillis();
             return;
         }
-        deltaTime = (System.currentTimeMillis() - olderTime) / 1000;
+        double deltaTime = (System.currentTimeMillis() - olderTime) / 1000.0;
         olderTime = System.currentTimeMillis();
         double[] angles = gyroFilter.getAngle();
         double[] accel = rawGyro.getAcceleration();
+        //Calculate the speed of the robot based on the tilt angle
         double xSpeed = levelPIDController.calculate(angles[0], 0) / 2 / Math.PI;
         double ySpeed = levelPIDController.calculate(angles[1], 0) / 2 / Math.PI;
+        
+        //Calculate the absolute acceleration of the robot in the z direction
         double xComponent = accel[0] * Math.sin(angles[0])
-                + accel[1] * Math.sin(angles[1])
-                + accel[2] * Math.sin(Math.PI / 2 - angles[0]) * Math.sin(Math.PI / 2 - angles[1]);
-        double netZAccel = (xComponent - 1) * 9.81; // m/s^2
+        double yComponent = accel[1] * Math.sin(angles[1])
+        double zComponent = accel[2] * Math.sin(Math.PI / 2 - angles[0]) * Math.sin(Math.PI / 2 - angles[1]);
+        double netZAccel = (xComponent + yComponent + zComponent - 1) * 9.81; // m/s^2
+
+        //Integrate the acceleration to get the speed
         netSpeed += netZAccel * deltaTime;
+        //Integrate the speed to get the distance
         netDistance += netSpeed * deltaTime;
         System.out.println(netDistance);
-        // TODO: fix this
+        // TODO: fix this (it should drive the robot up the ramp, theoretically)
         swerveSubsystem.drive(0, 0, 0);
     }
 
@@ -151,5 +161,11 @@ public class SwerveDriveCommand extends CommandBase {
     @Override
     public boolean isFinished() {
         return false;
+    }
+
+    // Called once the command ends or is interrupted.
+    @Override
+    public void end(boolean interrupted) {
+        swerveSubsystem.stop();
     }
 }

@@ -107,7 +107,7 @@ public class SwerveModule extends SubsystemBase {
     SmartDashboard.putNumber(this.getName() + " Absolute Encoder Angle", absoluteEncoder.getPositionRadians() * 360);
     SmartDashboard.putNumber(this.getName() + " Relative Encoder Angle", encoder.getPosition() * 360);
     SmartDashboard.putNumber(this.getName() + " Angle (Degrees)", Units.radiansToDegrees(getCurrentAngleRadians()));
-    SmartDashboard.putNumber("Front Left Encoder Velocity", driveMotor.getEncoder().getVelocity());
+    SmartDashboard.putNumber(this.getName() + " Encoder Velocity", driveMotor.getEncoder().getVelocity());
   }
 
   public void stop() {
