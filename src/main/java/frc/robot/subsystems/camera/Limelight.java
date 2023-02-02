@@ -26,8 +26,11 @@ public class Limelight {
     }
 
     public void debugDisplayValues() {
+        SmartDashboard.putBoolean("target", target.getBoolean(false));
         SmartDashboard.putNumber("tx", x.getDouble(0));
         SmartDashboard.putNumber("ty", y.getDouble(0));
         SmartDashboard.putNumber("area", area.getDouble(0.0));
+        SmartDashboard.putNumber("skew", skew.getDouble(0.0));
+        SmartDashboard.putNumber("camMode", cameraMode.getDouble(0.0));
     }
 }
