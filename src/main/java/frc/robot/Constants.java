@@ -25,21 +25,23 @@ public final class Constants {
 
     // Used for initializing swerve modules at startup
     public enum SwerveModule {
-        FRONT_RIGHT(16, 17, 2, 0),
-        FRONT_LEFT(10, 11, 1, 0),
-        BACK_LEFT(12, 13, 0, 5.06),
-        BACK_RIGHT(15, 14, 3, 0);
+        FRONT_RIGHT(16, 17, 2, 0, 4),
+        FRONT_LEFT(10, 11, 1, 0, 5),
+        BACK_LEFT(12, 13, 0, 5.06, 6),
+        BACK_RIGHT(15, 14, 3, 0, 7);
 
         private final int driveID;
         private final int spinID;
         private final int encoderID;
         private final double encoderOffset;
+        private final int reedSwitchID;
 
-        SwerveModule(int driveID, int spinID, int encoderID, double encoderOffset) {
+        SwerveModule(int driveID, int spinID, int encoderID, double encoderOffset, int reedSwitchID) {
             this.driveID = driveID;
             this.spinID = spinID;
             this.encoderID = encoderID;
             this.encoderOffset = encoderOffset;
+            this.reedSwitchID = reedSwitchID;
         }
 
         public int getDriveID() {
@@ -57,23 +59,37 @@ public final class Constants {
         public double getEncoderOffset() {
             return encoderOffset;
         }
+
+        public int getReedSwitchID() {
+            return reedSwitchID;
+        }
     }
 
+    public static final double reedSwitchDebounceTime = 0.1;
     // The port on the Driver Station that the joystick is connected to.
     public static int driveStickPort = 0;
+    public static int flightStickPort = 1;
     // The Driver Station joystick used for driving the robot.
     public static XboxController driverController = new XboxController(Constants.driveStickPort);
-    public static Joystick driverJoystick = new Joystick(Constants.driveStickPort);
+    public static Joystick driverJoystick = new Joystick(Constants.flightStickPort);
     public static double rotationsPerSecondMultiplier = Math.PI;
 
     /* Gear ratio between the spin motor and wheel rotation */
-    public static double gearRatio = 26.0 + 2.0 / 3.0;
+    public static double gearRatioSpin = 26.0 + 2.0 / 3.0;
+    public static double gearRatioDrive = 7.0 / 60; // what alex said, please dont kill me if it is wrong
+    public static double wheelCircumference = 0.1016 * Math.PI;
+    public static double driveMotorRPM = 5676;
+    public static double maxDriveSpeed = driveMotorRPM / 60 * gearRatioDrive * wheelCircumference;
 
     /* Motor maximum speed */
-    public static double motorMaxSpeedMetersPerSecond = 5.0;
+    public static double driveMotorMaxSpeedRatio = 5.0;
     public static double spinMotorMaxSpeedMetersPerSecond = 100.0;
-    public static double anglePIDDefaultValue = 0.55;
-    public static double drivePIDDefaultValue = 0.7;
+    public static double anglePIDDefaultValue = 0.4;
+    public static double anglePIDDerivativeValue = 0.01;
+    public static double drivePIDDefaultValue = 0.6;
+    public static double autonDistancePIDDefaultValue = 0.15;
+    public static double autonDistancePIDDerivativeValue = 0.005;
+    public static double autonDistancePIDIntegralValue = 0;
 
     /* Robot Width and Length Constants */
     public static double motorLengthApartInches = 24.5625;

@@ -8,6 +8,8 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.*;
+import frc.robot.subsystems.camera.Limelight;
+import frc.robot.subsystems.gyro.ComplementaryFilter;
 import frc.robot.commands.*;
 
 /**
@@ -25,11 +27,14 @@ public class RobotContainer {
   private final SwerveModule backLeftModule = new SwerveModule(Constants.SwerveModule.BACK_LEFT);
   private final SwerveModule backRightModule = new SwerveModule(Constants.SwerveModule.BACK_RIGHT);
   private final SwerveModule frontRightModule = new SwerveModule(Constants.SwerveModule.FRONT_RIGHT);
+  private final Limelight limelight = new Limelight();
+  private final ComplementaryFilter filteredAngles = new ComplementaryFilter();
 
   private final SwerveDrive swerve = new SwerveDrive(
       frontLeftModule, frontRightModule, backLeftModule, backRightModule);
 
-  private final SwerveDriveCommand m_teleopCommand = new SwerveDriveCommand(swerve);
+  private final SwerveDriveCommand m_teleopCommand = new SwerveDriveCommand(swerve, limelight, filteredAngles);
+  private final FollowAprilTag autonCommand = new FollowAprilTag(swerve, limelight, filteredAngles);
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -57,7 +62,7 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     // An ExampleCommand will run in autonomous
-    return null;
+    return autonCommand;
   }
 
   public Command getTeleopCommand() {

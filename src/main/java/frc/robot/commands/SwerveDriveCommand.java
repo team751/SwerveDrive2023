@@ -1,5 +1,7 @@
 package frc.robot.commands;
 
+import java.util.LinkedList;
+
 import edu.wpi.first.math.controller.PIDController;
 import frc.robot.subsystems.SwerveDrive;
 import frc.robot.subsystems.absencoder.AbsoluteEncoder;
@@ -16,14 +18,15 @@ import frc.robot.subsystems.gyro.Gyro;
 public class SwerveDriveCommand extends CommandBase {
     // Swerb controller
     private final SwerveDrive swerveSubsystem;
+    private final Limelight limelight;
     // Joystick Limiters
     private final SlewRateLimiter vxFLimiter;
     private final SlewRateLimiter vyFLimiter;
     // Gyroscope things
-    private final ComplementaryFilter gyroFilter;
+    private final ComplementaryFilter filteredAngles;
     private final Gyro rawGyro;
     // Camera
-    private final Limelight limelight;
+    // private final Limelight limelight;
     // Auto Level
     private final PIDController levelPIDController;
     // Boolean values for mode toggles
@@ -35,33 +38,40 @@ public class SwerveDriveCommand extends CommandBase {
     private double netDistance;
     private double netSpeed;
 
+    private boolean bIsPressed;
+    private boolean aIsPressed;
+
     /**
      * Creates a new SwerveDriveCommand.
      *
      * @param subsystem The subsystem used by this command.
      */
-    public SwerveDriveCommand(SwerveDrive subsystem) {
+    public SwerveDriveCommand(SwerveDrive subsystem, Limelight limelight, ComplementaryFilter filteredAngles) {
+        this.limelight = limelight;
         rawGyro = new Gyro();
         netDistance = 0;
         netSpeed = 0;
         olderTime = 0;
         deltaTime = 0;
+        zeroModules = false;
+        bIsPressed = false;
+        aIsPressed = false;
+        autoLevel = false;
         swerveSubsystem = subsystem;
         addRequirements(subsystem);
         height = 0;
         // Gyroscope
-        gyroFilter = new ComplementaryFilter();
+        this.filteredAngles = filteredAngles;
         autoLevel = false;
         // Camera
-        limelight = new Limelight();
-
         SmartDashboard.putNumber("Left Stick Angle (Radians)", 0);
         SmartDashboard.putNumber("Left Stick Magnitude", 0);
         SmartDashboard.putNumber("Right Stick Rotation", 0);
 
-        vxFLimiter = new SlewRateLimiter(2);
-        vyFLimiter = new SlewRateLimiter(2);
+        vxFLimiter = new SlewRateLimiter(4);
+        vyFLimiter = new SlewRateLimiter(4);
         levelPIDController = new PIDController(0.5, 0, 0);
+        SmartDashboard.putBoolean("Xbox Controller", true);
     }
 
     // Called when the command is initially scheduled.
@@ -74,15 +84,27 @@ public class SwerveDriveCommand extends CommandBase {
     @Override
     public void execute() {
         // Get Gyro Readings
-        gyroFilter.debugAngle();
+        filteredAngles.debugAngle();
 
         // Get camera values
         limelight.debugDisplayValues();
 
-        // Get Joystick Values
-        double vx = vxFLimiter.calculate(Constants.driverController.getLeftX()); // TODO: Convert to m/s
-        double vy = vyFLimiter.calculate(Constants.driverController.getLeftY()); // TODO: Convert to m/s
-        double rotationsPerSecond = Constants.driverController.getRightX() * Constants.rotationsPerSecondMultiplier;
+        // Get Joystick Values vx and vy are in meters per second
+        double vxStick;
+        double vyStick;
+        double rpsStick;
+        if (SmartDashboard.getBoolean("Xbox Controller", true)) {
+            vxStick = Constants.driverController.getLeftX();
+            vyStick = Constants.driverController.getLeftY();
+            rpsStick = Constants.driverController.getRightX();
+        } else {
+            vxStick = Constants.driverJoystick.getX();
+            vyStick = Constants.driverJoystick.getY();
+            rpsStick = Constants.driverJoystick.getZ();
+        }
+        double vx = vxFLimiter.calculate(vxStick) * Constants.maxDriveSpeed;
+        double vy = vyFLimiter.calculate(vyStick) * Constants.maxDriveSpeed;
+        double rotationsPerSecond = rpsStick * Constants.rotationsPerSecondMultiplier;
 
         // Speed deadband
         if (Math.sqrt(vx * vx + vy * vy) < 0.2) {
@@ -92,25 +114,32 @@ public class SwerveDriveCommand extends CommandBase {
 
         // TODO: weird behavior where this only works when "A" is held down
         // TODO: perhaps have the function return true if completed?
-        if (Constants.driverController.getBButtonPressed()) {
+        if (Constants.driverController.getBButtonPressed() != bIsPressed) {
             autoLevel = !autoLevel;
             olderTime = 0;
             netSpeed = 0;
             netDistance = 0;
             SmartDashboard.putString("Current Mode", "Auto Level");
         }
+        bIsPressed = Constants.driverController.getBButtonPressed();
 
         if (Constants.driverController.getAButtonPressed()) {
             zeroModules = !zeroModules;
             SmartDashboard.putString("Current Mode", "Zeroing Modules");
         }
 
+        if (Constants.driverController.getStartButtonPressed()) {
+            rawGyro.calibrate();
+            filteredAngles.calibrate();
+        }
+
         if (zeroModules) {
-            zeroModules = !swerveSubsystem.zeroModules();
+            swerveSubsystem.zeroModules();
         } else if (autoLevel) {
             autoLevel();
         } else {
             swerveSubsystem.drive(vx, vy, rotationsPerSecond);
+            SmartDashboard.putString("Current Mode", "Drive");
         }
 
         // Smart dashboard controller
@@ -122,7 +151,17 @@ public class SwerveDriveCommand extends CommandBase {
     // Called once the command ends or is interrupted.
     @Override
     public void end(boolean interrupted) {
-        swerveSubsystem.stop();
+        // swerveSubsystem.stop();
+    }
+
+    public double calculateZAccel() {
+        double[] angles = filteredAngles.getAngle();
+        double[] accels = rawGyro.getAcceleration();
+        double zAccelM = accels[2] * Math.cos(Math.abs(angles[1])) * Math.cos(Math.abs(angles[0]))
+                + accels[0] * Math.sin(Math.abs(angles[0]))
+                + accels[1] * Math.sin(Math.abs(angles[1]));
+        float zAccelSign = 0;
+        return zAccelM;
     }
 
     public void autoLevel() {
@@ -132,19 +171,20 @@ public class SwerveDriveCommand extends CommandBase {
         }
         deltaTime = (System.currentTimeMillis() - olderTime) / 1000;
         olderTime = System.currentTimeMillis();
-        double[] angles = gyroFilter.getAngle();
         double[] accel = rawGyro.getAcceleration();
-        double xSpeed = levelPIDController.calculate(angles[0], 0) / 2 / Math.PI;
-        double ySpeed = levelPIDController.calculate(angles[1], 0) / 2 / Math.PI;
-        double xComponent = accel[0] * Math.sin(angles[0])
+        double[] angles = filteredAngles.getAngle();
+        double netZAccel = accel[0] * Math.sin(angles[0])
                 + accel[1] * Math.sin(angles[1])
                 + accel[2] * Math.sin(Math.PI / 2 - angles[0]) * Math.sin(Math.PI / 2 - angles[1]);
-        double netZAccel = (xComponent - 1) * 9.81; // m/s^2
-        netSpeed += netZAccel * deltaTime;
+        // m/s^2
+        double netAccel1 = calculateZAccel();
+        SmartDashboard.putNumber("haha", netAccel1);
+        netSpeed += netAccel1 * deltaTime;
+
         netDistance += netSpeed * deltaTime;
         System.out.println(netDistance);
         // TODO: fix this
-        swerveSubsystem.drive(0, 0, 0);
+        // swerveSubsystem.drive(0, 0, 0);
     }
 
     // Returns true when the command should end.

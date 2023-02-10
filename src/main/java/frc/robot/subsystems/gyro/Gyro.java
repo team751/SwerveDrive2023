@@ -4,10 +4,11 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import edu.wpi.first.wpilibj.I2C;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 // Wrapper for the LSM9DS1 gyroscope, gets values from the registers via I2C
-public class Gyro {
+public class Gyro extends SubsystemBase {
     private final int LSM9DS1_ADDRESS = 0x6b;
 
     private static final int LSM9DS1_WHO_AM_I = 0x0f;
@@ -124,6 +125,9 @@ public class Gyro {
         gyroErrorX = 0 - data[0];
         gyroErrorY = 0 - data[1];
         gyroErrorZ = 0 - data[2];
+
+        double[] accel = getAcceleration();
+
     }
 
     public void debugDisplayValues() {

@@ -10,7 +10,8 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import frc.robot.Constants;
-import frc.robot.subsystems.absencoder.AbsoluteEncoder;;
+import frc.robot.subsystems.absencoder.AbsoluteEncoder;
+import frc.robot.subsystems.switches.ReedSwitch;
 
 public class SwerveModule extends SubsystemBase {
 
@@ -26,30 +27,35 @@ public class SwerveModule extends SubsystemBase {
   private final PIDController rotationalPidController;
 
   // Instance variables for returning values
-  private Rotation2d currentWheelRotation;
+  private ReedSwitch reedSwitch;
 
   /** Creates a new SwerveDriveSubsystem. */
-  public SwerveModule(int driveID, int spinID, int encoderID, double absoluteEncoderOffset) {
+  public SwerveModule(int driveID, int spinID, int encoderID, double absoluteEncoderOffset, int reedSwitchPortID) {
+    // PID controller for smoothly rotating the swerve module
     rotationalPidController = new PIDController(Constants.anglePIDDefaultValue, 0, 0);
-    absoluteEncoder = new AbsoluteEncoder(encoderID);
     rotationalPidController.enableContinuousInput(-Math.PI, Math.PI);
-    ENCODER_OFFSET = absoluteEncoderOffset;
+    // Init motors
     driveMotor = new CANSparkMax(driveID, MotorType.kBrushless);
     spinMotor = new CANSparkMax(spinID, MotorType.kBrushless);
+    // Init encoders
     encoder = spinMotor.getEncoder();
-    currentWheelRotation = new Rotation2d(encoder.getPosition());
+    // converts encoder position (0 -> 1) to the current module angle
+    encoder.setPositionConversionFactor(2 * Math.PI / Constants.gearRatioSpin);
+    ENCODER_OFFSET = absoluteEncoderOffset;
+    absoluteEncoder = new AbsoluteEncoder(encoderID);
+    // Init reed switch
+    reedSwitch = new ReedSwitch(reedSwitchPortID);
   }
 
   public SwerveModule(Constants.SwerveModule moduleConfig) {
     this(moduleConfig.getDriveID(), moduleConfig.getSpinID(), moduleConfig.getEncoderID(),
-        moduleConfig.getEncoderOffset());
+        moduleConfig.getEncoderOffset(), moduleConfig.getReedSwitchID());
     this.setName(moduleConfig.name());
   }
 
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
-    currentWheelRotation = new Rotation2d(encoder.getPosition());
   }
 
   @Override
@@ -58,7 +64,7 @@ public class SwerveModule extends SubsystemBase {
   }
 
   public void setSpeed(double speedMetersPerSecond) {
-    double motorSpeed = speedMetersPerSecond / Constants.motorMaxSpeedMetersPerSecond;
+    double motorSpeed = speedMetersPerSecond / Constants.maxDriveSpeed / Constants.driveMotorMaxSpeedRatio;
     driveMotor.set(motorSpeed);
   }
 
@@ -67,16 +73,17 @@ public class SwerveModule extends SubsystemBase {
   }
 
   public Rotation2d getCurrentRotation2d() {
-    return currentWheelRotation;
+    return new Rotation2d(encoder.getPosition());
   }
 
   public double getCurrentAngleRadians() {
-    return currentWheelRotation.getRadians();
+    return getCurrentRotation2d().getRadians();
   }
 
-  public double setAngle(double angleRadians) {
-    double motorSpeed = rotationalPidController.calculate(getCurrentAngleRadians(), angleRadians);
-    double normalizedMotorSpinSpeed = (motorSpeed / Constants.spinMotorMaxSpeedMetersPerSecond) * Constants.gearRatio;
+  public double setAngle(double setpointRadians) {
+    double motorSpeed = rotationalPidController.calculate(getCurrentAngleRadians(), setpointRadians);
+    double normalizedMotorSpinSpeed = (motorSpeed / Constants.spinMotorMaxSpeedMetersPerSecond)
+        * Constants.gearRatioSpin;
     spinMotor.set(normalizedMotorSpinSpeed);
     return normalizedMotorSpinSpeed;
   }
@@ -87,17 +94,25 @@ public class SwerveModule extends SubsystemBase {
     double angleSetpoint = state.angle.getRadians();
     setAngle(angleSetpoint);
 
-    double motorSpeed = state.speedMetersPerSecond / Constants.motorMaxSpeedMetersPerSecond;
+    double motorSpeed = state.speedMetersPerSecond / Constants.maxDriveSpeed / 3;
     driveMotor.set(motorSpeed);
     return driveMotor.getEncoder().getVelocity();
   }
 
   public boolean resetSpinMotor() {
     double motorSpeed = rotationalPidController.calculate(absoluteEncoder.getPositionRadians(), ENCODER_OFFSET);
-    double normalizedMotorSpinSpeed = (motorSpeed / Constants.spinMotorMaxSpeedMetersPerSecond) * Constants.gearRatio;
+    double normalizedMotorSpinSpeed = (motorSpeed / Constants.spinMotorMaxSpeedMetersPerSecond)
+        * Constants.gearRatioSpin;
     spinMotor.set(normalizedMotorSpinSpeed);
     if (Math.abs(absoluteEncoder.getPositionRadians() - ENCODER_OFFSET) < 0.01) {
       encoder.setPosition(0);
+      // if the reed switch is not triggered (meaning the module is opposite where it
+      // should be) then invert the motor's direction
+      if (!reedSwitch.get()) {
+        driveMotor.setInverted(true);
+      } else {
+        driveMotor.setInverted(false);
+      }
       return true;
     }
     return false;

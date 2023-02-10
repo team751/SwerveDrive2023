@@ -1,14 +1,18 @@
 package frc.robot.subsystems.gyro;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import java.util.ArrayList;
 
 // Uses multiple inputs from the gyroscope to make the values more accurate
-public class ComplementaryFilter {
+public class ComplementaryFilter extends SubsystemBase {
     private Gyro sensor;
     private double[] anglePrevious;
     private double deltaTime;
     private double olderTime;
-    private final double percentage = 0.02;
+    private double percentage = 0.2;
+    private double[] angleError = { 0.0, 0.0, 0.0 };
+    private ArrayList<Double> pastAverage = new ArrayList<Double>();
 
     public ComplementaryFilter() {
         sensor = new Gyro();
@@ -21,6 +25,12 @@ public class ComplementaryFilter {
     public double[] getAngle() {
         deltaTime = (System.currentTimeMillis() - olderTime) / 1000;
         olderTime = System.currentTimeMillis();
+        if (deltaTime > 1) {
+            deltaTime = 0;
+            percentage = 1;
+        } else {
+            percentage = 0.2;
+        }
         double[] angle = new double[3];
         double[] gyro = sensor.getRotationalVelocity();
         double[] accel = sensor.getAccelerationAngle();
@@ -30,16 +40,31 @@ public class ComplementaryFilter {
         anglePrevious[0] = angle[0];
         anglePrevious[1] = angle[1];
         anglePrevious[2] = angle[2];
-        angle[0] = Math.toRadians(angle[0]);
-        angle[1] = Math.toRadians(angle[1]);
-        angle[2] = Math.toRadians(angle[2]);
+        angle[0] = Math.toRadians(angle[0]) - angleError[0];
+        angle[1] = Math.toRadians(angle[1]) - angleError[1];
+        angle[2] = Math.toRadians(angle[2]) - angleError[2];
+        pastAverage.add(angle[0]);
+        if (pastAverage.size() > 1) {
+            pastAverage.remove(0);
+        }
+        double sum = 0;
+        for (double d : pastAverage) {
+            sum += d;
+        }
+        angle[0] = sum / pastAverage.size();
         return angle;
+    }
+
+    public void calibrate() {
+        sensor.calibrate();
+        double[] angleError = getAngle();
+        this.angleError = angleError;
     }
 
     public void debugAngle() {
         double[] angle = getAngle();
-        SmartDashboard.putNumber("filteredX", angle[0]);
-        SmartDashboard.putNumber("FilteredY", angle[1]);
+        SmartDashboard.putNumber("filteredX", Math.toDegrees(angle[0]));
+        SmartDashboard.putNumber("FilteredY", Math.toDegrees(angle[1]));
     }
 
 }

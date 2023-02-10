@@ -49,7 +49,7 @@ public class SwerveDrive extends SubsystemBase {
         SwerveModuleState backRightState = states[3];
 
         // stops modules from resetting their position if the joystick is not being used
-        if (Math.sqrt(vx * vx + vy * vy) < 0.1 && Math.abs(rotationRadiansPerSecond) < 0.1) {
+        if (Math.sqrt(vx * vx + vy * vy) < 0.05 && Math.abs(rotationRadiansPerSecond) < 0.05) {
             stop();
             return;
         }
@@ -62,11 +62,7 @@ public class SwerveDrive extends SubsystemBase {
             frontRight.drive(frontRightState);
         }
         if (SmartDashboard.getBoolean("Front Left Motor", true) && !disableAllMotors) {
-            double encoderVelocity = frontLeft.drive(frontLeftState);
-            SmartDashboard.putNumber("Front Left Target", frontLeftState.angle.getDegrees());
-            SmartDashboard.putNumber("Front Left Encoder Velocity", encoderVelocity);
-            SmartDashboard.putNumber("Front Left Angle (Degrees)",
-                    Units.radiansToDegrees(frontLeft.getCurrentAngleRadians()));
+            frontLeft.drive(frontLeftState);
         }
         if (SmartDashboard.getBoolean("Back Right Motor", true) && !disableAllMotors) {
             backRight.drive(backRightState);
